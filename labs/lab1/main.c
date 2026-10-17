@@ -41,24 +41,43 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (x <= 1) {
+    if (x < 1) {
         fprintf(stderr, "Usage: %s -p X\n", argv[0]);
         return 1;
     }
 
     printf("Количество процессов: %d\n", x+1);
 
+    int fd[2];
+    if (pipe(fd) < 0) {
+        perror("pipe");
+        return 1;
+    }
 
     for (int i = 1; i < x+1; i++){
         int pid_id = fork();
         
+       
+
         if (pid_id < 0) {
             perror("fork");
             return 1;
         } else if (pid_id == 0){
             printf("Дочерний процесс: %d\n", i);
+
+            char buf[16] = {0};
+            close(fd[1]);
+            ssize_t n = read(fd[0], buf, sizeof(buf) - 1);
+            if (n > 0) {
+                printf("Ребенок %d получил: %s\n", i, buf);
+                fflush(stdout);
+            }
+            
             break;
         }
+
+        write(fd[1], "hello", 5);
+        close(fd[1]);
     }
     return 0;
 }
